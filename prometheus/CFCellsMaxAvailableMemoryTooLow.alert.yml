@@ -1,0 +1,13 @@
+groups:
+  - name: cf-cells
+    rules:
+      - alert: CFCellsMaxAvailableMemoryTooLow
+        expr: max(avg(firehose_value_metric_rep_capacity_remaining_memory) by(environment, bosh_deployment, bosh_job_name, bosh_job_id)) by(environment, bosh_deployment, bosh_job_name) < <%= p('cloudfoundry_alerts.max_available_memory.threshold') %>
+        for: <%= p('cloudfoundry_alerts.max_available_memory.evaluation_time') %>
+        labels:
+          service: cf
+          severity: warning
+        annotations:
+          summary: "CF `{{$labels.environment}}/{{$labels.bosh_deployment}}` cell with max available memory is too low: {{$value}}MiB"
+          description: "The cell at CF `{{$labels.environment}}/{{$labels.bosh_deployment}}` with the maximum available memory has been {{$value}}MiB during the last <%= p('cloudfoundry_alerts.max_available_memory.evaluation_time') %>"
+

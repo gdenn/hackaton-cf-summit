@@ -1,5 +1,6 @@
 - type: replace
-  path: /instance_groups/name=alertmanager/jobs/name=alertmanager/properties/alertmanager/receivers/name=default/webhook_configs?/-
+  path: /instance_groups/name=alertmanager/jobs/name=alertmanager/properties/alertmanager/receivers/name=default/slack_configs?/-
   value:
-    url: "http://127.0.0.1:9087/alert/-chat_id"
+    api_url: "https://hooks.slack.com/services/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"
+    channel: "#cfsummit2018"
     send_resolved: false
