@@ -1,0 +1,108 @@
+---
+name: prometheus
+
+instance_groups:
+  - name: alertmanager
+    azs:
+      - z1
+    instances: 1
+    vm_type: default
+    persistent_disk: 1_024
+    stemcell: default
+    networks:
+      - name: default
+    jobs:
+      - name: alertmanager
+        release: prometheus
+        properties:
+          alertmanager:
+            mesh:
+              password: ((alertmanager_mesh_password))
+            route:
+              receiver: default
+            receivers:
+              - name: default
+            test_alert:
+              daily: false
+
+  - name: prometheus2
+    azs:
+      - z1
+    instances: 1
+    vm_type: default
+    persistent_disk: 10_240
+    stemcell: default
+    networks:
+      - name: default
+    jobs:
+      - name: prometheus2
+        release: prometheus
+        properties:
+          prometheus:
+            rule_files:
+              - /var/vcap/jobs/prometheus_alerts/*.alerts.yml
+            scrape_configs:
+              - job_name: prometheus
+                static_configs:
+                - targets:
+                  - localhost:9090
+      - name: prometheus_alerts
+        release: prometheus
+
+  - name: grafana
+    azs:
+      - z1
+    instances: 1
+    vm_type: default
+    persistent_disk: 1_024
+    stemcell: default
+    networks:
+      - name: default
+    jobs:
+      - name: grafana
+        release: prometheus
+        properties:
+          grafana:
+            session:
+              provider: memory
+            security:
+              admin_user: admin
+              admin_password: ((grafana_password))
+              secret_key: ((grafana_secret_key))
+            dashboards:
+            prometheus:
+              dashboard_folders:
+                - name: Grafana
+                  files:
+                    - /var/vcap/jobs/grafana_dashboards/*.json
+                - name: Prometheus
+                  files:
+                    - /var/vcap/jobs/prometheus_dashboards/*.json
+      - name: grafana_dashboards
+        release: prometheus
+      - name: prometheus_dashboards
+        release: prometheus
+
+variables:
+  - name: alertmanager_mesh_password
+    type: password
+  - name: prometheus_password
+    type: password
+
+update:
+  canaries: 1
+  max_in_flight: 32
+  canary_watch_time: 1000-100000
+  update_watch_time: 1000-100000
+  serial: false
+
+stemcells:
+  - alias: default
+    os: ubuntu-trusty
+    version: latest
+
+releases:
+- name: prometheus
+  version: 22.0.0
+  url: https://github.com/bosh-prometheus/prometheus-boshrelease/releases/download/v22.0.0/prometheus-22.0.0.tgz
+  sha1: b2c97721e1f8db7ffce2f849e02afe62e3005de7
