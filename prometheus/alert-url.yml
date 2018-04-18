@@ -1,0 +1,6 @@
+- type: replace
+  path: /instance_groups/name=alertmanager/jobs/name=alertmanager/properties/alertmanager/receivers/name=default/slack_configs?/-
+  value:
+    api_url: "https://hooks.slack.com/services/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"
+    channel: "#cfsummit2018"
+    send_resolved: false
