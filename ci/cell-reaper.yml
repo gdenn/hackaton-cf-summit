@@ -1,0 +1,75 @@
+resource_types:
+  - name: slack-read-resource
+    type: docker-image
+    source:
+      repository: jakobleben/slack-read-resource
+
+resources:
+  - name: ci-scripts
+    type: git
+    source:
+      uri: git@github.com:gdenn/hackaton-cf-summit
+      branch: master
+      private_key: ((cell_reaper.git_private_key))
+  - name: cf-deployment-config
+    type: git
+    source:
+      uri: git@github.com:gdenn/hackaton-cf-summit
+      ignore_paths:
+        - ci/
+      branch: master
+      private_key: ((cell_reaper.git_private_key))
+  - name: scale-up-message
+    type: slack-read-resource
+    source:
+      token: ((cell_reaper.scale_up_message.token))
+      channel_id: ((cell_reaper.scale_up_message.channel_id))
+      text_pattern: 'CellReaper scale diego cells'
+
+jobs:
+  - name: up-scale
+    serial: true
+    plan:
+      - get: ci-scripts
+      - get: scale-up-message
+        trigger: true
+      - task: up-scale
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            repository: avarteqgmbh/pipeline-utils
+          inputs:
+            - cf-deployment-config
+          outputs:
+            - config-output
+          run: 
+            path: /scripts/tasks/up_scale/up_scale.rb
+          params:
+            UP_SCALE_STEP_SIZE: ((cell_reaper.up_scale_step_size))
+      - put: cf-deployment-config
+        params:
+          repository: config-output
+
+  - name: deploy-cf
+    serial: true
+    plan:
+      - get: cf-deployment-config
+        trigger: true
+        passed: [up-scale]
+      - get: ci-scripts
+      - task: deploy-cf
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            repository: avarteqgmbh/pipeline-utils
+          inputs:
+            - cf-deployment-config
+          run: 
+            path: /scripts/up_scale.rb
+          params:
+            BOSH_CLIENT: ((cell_reaper.boch_client))
+            BOSH_CLIENT_SECRET: ((cell_reaper.bosh_client_secret))
+            BOSH_CA_CERT: ((cell_reaper.bosh_ca_cert))
+            BOSH_ENVIRONMENT: ((cell_reaper.bosh_environment))
