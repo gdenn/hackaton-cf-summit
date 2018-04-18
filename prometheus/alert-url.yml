@@ -1,0 +1,5 @@
+- type: replace
+  path: /instance_groups/name=alertmanager/jobs/name=alertmanager/properties/alertmanager/receivers/name=default/webhook_configs?/-
+  value:
+    url: "http://127.0.0.1:9087/alert/-chat_id"
+    send_resolved: false
